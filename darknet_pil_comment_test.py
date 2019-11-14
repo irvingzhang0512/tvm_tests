@@ -1,5 +1,5 @@
-import numpy as np
-import cv2
+from PIL import Image
+import imageio
 import time
 
 from tvm import autotvm
@@ -18,7 +18,6 @@ VIDEO_PATH = '/hdd02/zhangyiyang/data/videos/Office-Parkour.mp4'
 batch_size = 1
 steps = 100
 target = 'cuda'
-# target = 'cuda -libs=cudnn'
 dtype = 'float32'
 
 # darknet files
@@ -34,30 +33,29 @@ def evaluate():
     mod, params = relay.frontend.from_darknet(
         net, dtype=dtype, shape=[batch_size, net.c, net.h, net.w])
 
-#    # if commented, then cv2.resize & cv2.read cost much less time
-#     with relay.build_config(opt_level=3):
-#         graph, lib, params = relay.build_module.build(
-#             mod, target=target, params=params)
+    # # if commented, then read video frame & image resize cost less time
+    # with relay.build_config(opt_level=3):
+    #     graph, lib, params = relay.build_module.build(
+    #         mod, target=target, params=params)
 
     # run
     cnt = 0
-    cap = cv2.VideoCapture(VIDEO_PATH)
-    res, frame = cap.read()
+    cap = imageio.get_reader(VIDEO_PATH)
     start = time.time()
+    itr = iter(cap)
 
-    while res:
+    while True:
         t1 = time.time()
-        img = cv2.resize(frame, (416, 416), interpolation=cv2.INTER_LINEAR)
-        img = np.divide(img, 255.0)
-        img = img.transpose((2, 0, 1))
-        img = np.flip(img, 0)
+        frame = next(itr)
         t2 = time.time()
-
-        res, frame = cap.read()
-        cnt += 1
+        img = Image.fromarray(frame)
+        img = img.resize((416, 416))
         t3 = time.time()
+
+        cnt += 1
         print('%05f %05f %05f' % (t2 - t1, t3-t2, t3-t1))
 
+        t3 = time.time()
         if cnt == steps:
             break
     end = time.time()
