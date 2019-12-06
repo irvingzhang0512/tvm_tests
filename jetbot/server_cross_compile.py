@@ -16,8 +16,7 @@ set_cuda_target_arch('sm_53')
 
 dtype = 'float32'
 input_shape = (1, 416, 416, 3)
-log_file_path = "/hdd02/zhangyiyang/tvm_tests/jetbot_tune/jetson-yolov3-tiny.log.tmp"
-log_file_path = None
+log_file_path = "/hdd02/zhangyiyang/tvm_tests/jetbot_tune/jetson-yolov3-tiny-v2.log"
 
 source = 'darknet'
 use_gpu = True
@@ -37,7 +36,7 @@ if local_demo:
         ctx = remote.cpu()
 else:
     host = '10.70.10.196'
-    port = 9090
+    port = 9091
     export_dir = "remote"
     remote = rpc.connect(host, port)
     target_host = "llvm -target=aarch64-linux-gnu"

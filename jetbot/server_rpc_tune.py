@@ -27,14 +27,16 @@ tuning_option = {
     'log_filename': log_file,
 
     'tuner': 'xgb',
-    'n_trial': 500,
-    'early_stopping': 200,
+    'n_trial': 200,
+    'early_stopping': 100,
 
     'measure_option': autotvm.measure_option(
         builder=autotvm.LocalBuilder(timeout=1000),
         runner=autotvm.RPCRunner(
             'jetbot', '0.0.0.0', 9190,
-            number=10, timeout=1000)
+            number=5,
+            timeout=1000,
+        )
     ),
 }
 
@@ -185,7 +187,7 @@ def tune_and_evaluate(tuning_opt, source):
         # upload module to device
         print("Upload...")
         remote = autotvm.measure.request_remote("jetbot",
-                                                '10.70.10.196',
+                                                '0.0.0.0',
                                                 9190,
                                                 timeout=10000)
         remote.upload(tmp.relpath(filename))

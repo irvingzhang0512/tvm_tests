@@ -5,34 +5,30 @@ import time
 import numpy as np
 import tvm.relay.testing.yolo_detection
 import tvm.relay.testing.darknet
-from tvm import autotvm
 from tvm.contrib import graph_runtime
 from tvm.autotvm.measure.measure_methods import set_cuda_target_arch
 
 show = False
 
+set_cuda_target_arch('sm_53')
+target = tvm.target.cuda(model="nano")
+target_host = "llvm -target=aarch64-linux-gnu"
+target_path = "/home/jetbot/zhangyiyang/data/darknet/tvm/remote"
+video_path = '/home/jetbot/zhangyiyang/data/videos/Office-Parkour.mp4'
 
-# set_cuda_target_arch('sm_53')
-# target = tvm.target.cuda(model="nano")
-# target_host = "llvm -target=aarch64-linux-gnu"
-# target_path = "/home/jetbot/zhangyiyang/data/darknet/tvm"
-# video_path = '/home/jetbot/zhangyiyang/data/videos/Office-Parkour.mp4'
-# log_file_path = "./jetson-yolov3-tiny.log.tmp"
-
-set_cuda_target_arch('sm_70')
-target = tvm.target.cuda()
-target_host = "llvm -target=x86_64-linux-gnu"
-target_path = "/hdd02/zhangyiyang/tvm_tests/jetbot_tune/local"
-video_path = "/hdd02/zhangyiyang/data/videos/Office-Parkour.mp4"
-log_file_path = "/hdd02/zhangyiyang/tvm_tests/jetbot_tune/jetson-yolov3-tiny.log.tmp"
+# set_cuda_target_arch('sm_70')
+# target = tvm.target.cuda()
+# target_host = "llvm -target=x86_64-linux-gnu"
+# target_path = "/hdd02/zhangyiyang/tvm_tests/jetbot_tune/local"
+# video_path = "/hdd02/zhangyiyang/data/videos/Office-Parkour.mp4"
 
 dtype = "float32"
 ctx = tvm.gpu()
 
 names = None
 if show:
-    # coco_path = "/home/jetbot/zhangyiyang/darknet/data/coco.names"
-    coco_path = "/hdd02/zhangyiyang/darknet/data/coco.names"
+    coco_path = "/home/jetbot/zhangyiyang/darknet/data/coco.names"
+    # coco_path = "/hdd02/zhangyiyang/darknet/data/coco.names"
     with open(coco_path) as f:
         content = f.readlines()
     names = [x.strip() for x in content]
@@ -45,6 +41,7 @@ def imports(target_path, source):
                               'yolov3-tiny-{}-graph.json'.format(source))
     params_path = os.path.join(target_path,
                                'yolov3-tiny-{}-param.params'.format(source))
+    print(lib_path, graph_path, params_path)
     loaded_json = open(graph_path).read()
     loaded_lib = tvm.module.load(lib_path)
     loaded_params = bytearray(open(params_path, "rb").read())
@@ -114,7 +111,6 @@ def evaluate():
     tp_model = 0.
     tp_read = .0
     tp_preprocessing = .0
-    tp_preprocessing2 = .0
 
     print("start running")
     while res:
@@ -172,20 +168,12 @@ def evaluate():
 
         print('%05f %05f %05f %05f %05f' %
               (t2-t1, t3-t2, t4-t3, t5-t4, t5-t1))
-
-        if cnt % steps == 0:
-            end = time.time()
-            print(steps/(end-start), tp_model/cnt)
-            start = end
     total_time = time.time()-s
     print(total_time/cnt, cnt/total_time, tp_read/(cnt-1),
-          tp_preprocessing/cnt, tp_preprocessing2/cnt, tp_model/cnt)
-    cv2.destroyAllWindows()
+          tp_preprocessing / cnt, tp_model / cnt)
+    if show:
+        cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
-    if log_file_path is None:
-        evaluate()
-    else:
-        with autotvm.apply_history_best(log_file_path):
-            evaluate()
+    evaluate()
