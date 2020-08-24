@@ -16,4 +16,7 @@
   + [x] Server rpc auto-tuning.
   + [x] Server cross compile.
   + [x] Jetbot detect videos.
-+ Notes
++ [Notes](https://zhuanlan.zhihu.com/p/95742125)
+
+## 3. DCN
++ Target: convert Torchvision DCN to TVM deformable_conv2d.
