@@ -40,7 +40,8 @@ if __name__ == "__main__":
     # mmcv dcn
     mmcv_model = mmcv_dcn(3, 64, 3, padding=1).cuda().eval()
     mmcv_model.weight = torch.nn.Parameter(cur_weight)
-    mmcv_res = mmcv_model(cur_data, cur_offset)
+    with torch.no_grad():
+        mmcv_res = mmcv_model(cur_data, cur_offset)
 
     # # tvm from pytorch
     # shape_list = [("input0", [1, 3, 224, 224]), ("input1", [1, 18, 224, 224])]
@@ -81,9 +82,9 @@ if __name__ == "__main__":
     params2["bias"] = tvm.nd.array(cur_offset_np.astype(dtype))
     lib2 = relay.build_module.build(net, target, params=params2)
     module = graph_runtime.GraphModule(lib2["default"](ctx2))
-    module.set_input(0, tvm.nd.array(cur_data_np, ctx=ctx2))
-    module.set_input(1, tvm.nd.array(cur_offset_np, ctx=ctx2))
-    module.set_input(2, tvm.nd.array(cur_weight_np, ctx=ctx2))
+    module.set_input('data', tvm.nd.array(cur_data_np, ctx=ctx2))
+    # module.set_input('bias', tvm.nd.array(cur_offset_np, ctx=ctx2))
+    # module.set_input('weight', tvm.nd.array(cur_weight_np, ctx=ctx2))
     module.run()
     tvm_relay_output = module.get_output(0)
 
