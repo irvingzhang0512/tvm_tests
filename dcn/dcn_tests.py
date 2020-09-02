@@ -11,6 +11,9 @@ from tvm import relay
 from tvm.relay import testing
 from tvm.contrib import graph_runtime
 
+import mxnet
+from mxnet import nd
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 
@@ -24,10 +27,13 @@ if __name__ == "__main__":
     target_host = "llvm"
     cur_data = torch.randn([1, 3, 224, 224]).cuda()
     cur_data_np = cur_data.cpu().detach().numpy()
+    cur_data_nd = nd.array(cur_data_np)
     cur_offset = torch.randn([1, 18, 224, 224]).cuda()
     cur_offset_np = cur_offset.cpu().detach().numpy()
+    cur_offset_nd = nd.array(cur_offset_np)
     cur_weight = torch.randn([64, 3, 3, 3]).cuda()
     cur_weight_np = cur_weight.cpu().detach().numpy()
+    cur_weight_nd = nd.array(cur_weight_np)
 
     # pytorch torchvision
     pytorch_model = dcn(3, 64, 3, padding=1, bias=False).cuda().eval()
@@ -42,6 +48,12 @@ if __name__ == "__main__":
     mmcv_model.weight = torch.nn.Parameter(cur_weight)
     with torch.no_grad():
         mmcv_res = mmcv_model(cur_data, cur_offset)
+
+    # mxnet dcn
+    mxnet_res = mxnet.ndarray.contrib.DeformableConvolution(
+        data=cur_data_nd, offset=cur_offset_nd, weight=cur_weight_nd,
+        kernel=(3, 3), stride=(1, 1), dilate=(1, 1), pad=(1, 1), 
+        num_filter=64, num_group=1, num_deformable_group=1,  layout='NCHW', no_bias=True )
 
     # # tvm from pytorch
     # shape_list = [("input0", [1, 3, 224, 224]), ("input1", [1, 18, 224, 224])]
@@ -90,20 +102,24 @@ if __name__ == "__main__":
 
 
     print(
-        "pytorch torchvision res & tvm relay res",
+        "pytorch torchvision dcn vs tvm relay dcn",
         _output(tvm_relay_output.asnumpy(), pytorch_res.cpu().detach().numpy()),
     )
-    # print(
-    #     "pytorch torchvision weight & tvm params weight",
-    #     _output(params["weight"].asnumpy(), cur_weight_np),
-    # )
     print(
-        "mmcv dcn vs torchvision dcn",
+        "mmcv dcn vs torchvision dcn ",
         _output(
             mmcv_res.cpu().detach().numpy(), pytorch_res.cpu().detach().numpy()
         ),
     )
-    # print(
-    #     "tvm relay outputs vs tvm from pytorch outputs",
-    #     _output(tvm_relay_output.asnumpy(), tvm_output.asnumpy()),
-    # )
+    print(
+        "mxnet dcn vs torchvision dcn ",
+        _output(
+            mxnet_res.asnumpy(), pytorch_res.cpu().detach().numpy()
+        ),
+    )
+    print(
+        "mxnet dcn vs tvm relay dcn ",
+        _output(
+            mxnet_res.asnumpy(), tvm_relay_output.asnumpy()
+        ),
+    )
